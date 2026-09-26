@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scroll Animation Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;600;800;900&display=swap" rel="stylesheet">
+<style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+        --cyan: #00f0ff;
+        --pink: #ff2bd6;
+        --purple: #a855f7;
+        --bg: #050510;
+        --tx: #ffffff;
+        --tx-dim: rgba(255, 255, 255, .7);
+    }
+
+    html, body {
+        background: var(--bg);
+        color: var(--tx);
+        font-family: 'Vazirmatn', Tahoma, sans-serif;
+        overflow-x: hidden;
+        cursor: none;
+    }
+
+    /* کرسر سفارشی */
+    .cursor {
+        position: fixed;
+        top: 0; left: 0;
+        width: 20px; height: 20px;
+        border-radius: 50%;
+        background: var(--cyan);
+        pointer-events: none;
+        z-index: 9999;
+        mix-blend-mode: difference;
+        transition: transform .15s ease;
+    }
+
+    .cursor-ring {
+        position: fixed;
+        top: 0; left: 0;
+        width: 50px; height: 50px;
+        border: 2px solid var(--cyan);
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 9998;
+        opacity: .5;
+    }
+
+    /* پیشرفت اسکرول */
+    .progress {
+        position: fixed;
+        top: 0; right: 0;
+        height: 3px;
+        width: 0%;
+        background: linear-gradient(90deg, var(--cyan), var(--pink));
+        z-index: 9000;
+        box-shadow: 0 0 15px var(--cyan);
+    }
+
+    /* نویگیشن */
+    nav {
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 100;
+        display: flex;
+        gap: 30px;
+        padding: 12px 30px;
+        border-radius: 100px;
+        background: rgba(255, 255, 255, .05);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, .1);
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    nav a {
+        color: var(--tx-dim);
+        text-decoration: none;
+        transition: color .3s;
+    }
+
+    nav a:hover { color: var(--cyan); }
+
+    /* بخش هیرو */
+    .hero {
+        height: 100vh;
+        display: grid;
+        place-items: center;
+        position: relative;
+        overflow: hidden;
+        padding: 0 20px;
+    }
+
+    .hero-content {
+        text-align: center;
+        max-width: 900px;
+    }
+
+    .hero-tag {
+        display: inline-block;
+        padding: 8px 18px;
+        border-radius: 100px;
+        background: rgba(0, 240, 255, .1);
+        border: 1px solid rgba(0, 240, 255, .3);
+        color: var(--cyan);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        margin-bottom: 30px;
+        opacity: 0;
+    }
+
+    .hero-title {
+        font-size: clamp(40px, 8vw, 110px);
+        font-weight: 900;
+        line-height: 1;
+        letter-spacing: -2px;
+        margin-bottom: 30px;
+    }
+
+    .hero-title span {
+        display: inline-block;
+        opacity: 0;
+        transform: translateY(50px);
+    }
+
+    .hero-title .grad {
+        background: linear-gradient(135deg, var(--cyan), var(--pink), var(--purple));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .hero-sub {
+        font-size: 16px;
+        color: var(--tx-dim);
+        max-width: 500px;
+        margin: 0 auto 40px;
+        opacity: 0;
+    }
+
+    .scroll-hint {
+        position: absolute;
+        bottom: 40px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        color: var(--tx-dim);
+        font-size: 12px;
+        opacity: 0;
+    }
+
+    .scroll-hint .mouse {
+        width: 24px;
+        height: 40px;
+        border: 2px solid var(--tx-dim);
+        border-radius: 100px;
+        position: relative;
+    }
+
+    .scroll-hint .mouse::after {
+        content: '';
+        position: absolute;
+        top: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 3px;
+        height: 8px;
+        background: var(--cyan);
+        border-radius: 3px;
+        animation: wheel 1.5s ease-in-out infinite;
+    }
+
+    @keyframes wheel {
+        0%, 100% { opacity: 1; transform: translate(-50%, 0); }
+        50%      { opacity: .3; transform: translate(-50%, 12px); }
+    }
+
+    /* بخش pinned - متن زوم می‌شه */
+    .pin-section {
+        height: 100vh;
+        display: grid;
+        place-items: center;
+        position: relative;
+        overflow: hidden;
+        padding: 0 20px;
+    }
+
+    .pin-title {
+        font-size: clamp(60px, 15vw, 200px);
+        font-weight: 900;
+        letter-spacing: -4px;
+        text-align: center;
+        line-height: .9;
+        background: linear-gradient(135deg, #fff, rgba(255, 255, 255, .1));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .pin-title em {
+        font-style: normal;
+        display: block;
+        background: linear-gradient(135deg, var(--cyan), var(--pink));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    /* بخش horizontal scroll */
+    .horizontal-wrap {
+        height: 100vh;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .horizontal-track {
+        display: flex;
+        gap: 40px;
+        padding: 0 40px;
+        height: 100%;
+        align-items: center;
+        will-change: transform;
+    }
+
+    .h-card {
+        flex-shrink: 0;
+        width: 400px;
+        height: 70vh;
+        border-radius: 28px;
+        overflow: hidden;
+        position: relative;
+        background: rgba(255, 255, 255, .04);
+        border: 1px solid rgba(255, 255, 255, .1);
+        backdrop-filter: blur(20px);
+        padding: 40px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .h-card .num {
+        font-size: 80px;
+        font-weight: 900;
+        line-height: 1;
+        background: linear-gradient(135deg, var(--cyan), var(--pink));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .h-card h3 {
+        font-size: 24px;
+        font-weight: 800;
+        margin-bottom: 10px;
+    }
+
+    .h-card p {
+        font-size: 14px;
+        color: var(--tx-dim);
+        line-height: 1.8;
+    }
+
+    /* بخش پارالاکس */
+    .parallax-section {
+        padding: 150px 0;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .parallax-inner {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 40px;
+    }
+
+    .parallax-title {
+        font-size: clamp(32px, 6vw, 72px);
+        font-weight: 900;
+        line-height: 1.1;
+        margin-bottom: 60px;
+        max-width: 700px;
+    }
+
+    .parallax-title span {
+        display: inline-block;
+        opacity: 0;
+    }
+
+    .parallax-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+    }
+
+    .p-box {
+        padding: 30px;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, .03);
+        border: 1px solid rgba(255, 255, 255, .08);
+        opacity: 0;
+        transform: translateY(60px);
+    }
+
+    .p-box .ic {
+        font-size: 32px;
+        margin-bottom: 16px;
+        display: block;
+    }
+
+    .p-box h4 {
+        font-size: 16px;
+        font-weight: 800;
+        margin-bottom: 8px;
+    }
+
+    .p-box p {
+        font-size: 13px;
+        color: var(--tx-dim);
+        line-height: 1.7;
+    }
+
+    /* بخش CTA */
+    .cta-section {
+        height: 100vh;
+        display: grid;
+        place-items: center;
+        text-align: center;
+        padding: 0 20px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .cta-title {
+        font-size: clamp(40px, 10vw, 140px);
+        font-weight: 900;
+        line-height: 1;
+        letter-spacing: -3px;
+        background: linear-gradient(135deg, var(--cyan), var(--pink), var(--purple));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        opacity: 0;
+        transform: scale(.8);
+    }
+
+    .cta-btn {
+        display: inline-block;
+        margin-top: 40px;
+        padding: 18px 40px;
+        border-radius: 100px;
+        background: linear-gradient(135deg, var(--cyan), var(--pink));
+        color: #fff;
+        font-weight: 800;
+        font-size: 15px;
+        text-decoration: none;
+        border: none;
+        cursor: none;
+        opacity: 0;
+        transform: translateY(30px);
+        box-shadow: 0 0 40px rgba(0, 240, 255, .4);
+    }
+
+    /* نورهای پس زمینه */
+    .glow {
+        position: fixed;
+        border-radius: 50%;
+        filter: blur(120px);
+        pointer-events: none;
+        z-index: -1;
+        opacity: .35;
+    }
+
+    .glow-1 { width: 500px; height: 500px; background: var(--cyan);   top: 10%;  right: -100px; }
+    .glow-2 { width: 400px; height: 400px; background: var(--pink);   bottom: 10%; left: -100px; }
+    .glow-3 { width: 350px; height: 350px; background: var(--purple); top: 50%; left: 40%; }
+
+    .noise {
+        position: fixed;
+        inset: 0;
+        opacity: .03;
+        pointer-events: none;
+        z-index: 8000;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    @media (max-width: 768px) {
+        nav { gap: 15px; padding: 10px 20px; font-size: 11px; }
+        .h-card { width: 280px; padding: 24px; }
+        .cursor, .cursor-ring { display: none; }
+        body { cursor: auto; }
+        .cta-btn { cursor: pointer; }
+    }
+</style>
+</head>
+<body>
+
+<!-- کرسر سفارشی -->
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- نوار پیشرفت -->
+<div class="progress" id="progress"></div>
+
+<!-- نویز -->
+<div class="noise"></div>
+
+<!-- نورها -->
+<div class="glow glow-1"></div>
+<div class="glow glow-2"></div>
+<div class="glow glow-3"></div>
+
+<!-- نویگیشن -->
+<nav>
+    <a href="#hero">خانه</a>
+    <a href="#features">ویژگی‌ها</a>
+    <a href="#gallery">نمونه‌ها</a>
+    <a href="#contact">تماس</a>
+</nav>
+
+<!-- ═══════════════════════════════════
+     بخش ۱: هیرو
+═══════════════════════════════════ -->
+<section class="hero" id="hero">
+    <div class="hero-content">
+        <span class="hero-tag">SCROLL MAGIC ✨</span>
+        <h1 class="hero-title">
+            <span>دنیایی</span>
+            <span class="grad">با اسکرول</span>
+            <span>زنده میشه</span>
+        </h1>
+        <p class="hero-sub">
+            اسکرول کن تا ببینی چطور یه سایت معمولی تبدیل به یه تجربه سینمایی میشه
+        </p>
+    </div>
+    <div class="scroll-hint">
+        <div class="mouse"></div>
+        <span>اسکرول کن</span>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════
+     بخش ۲: Pinned (متن زوم میشه)
+═══════════════════════════════════ -->
+<section class="pin-section">
+    <h2 class="pin-title" id="pinTitle">
+        DESIGN
+        <em>MEETS</em>
+        MOTION
+    </h2>
+</section>
+
+<!-- ═══════════════════════════════════
+     بخش ۳: Horizontal Scroll
+═══════════════════════════════════ -->
+<section class="horizontal-wrap" id="gallery">
+    <div class="horizontal-track" id="hTrack">
+        <div class="h-card">
+            <span class="num">01</span>
+            <div>
+                <h3>اسکرول افقی</h3>
+                <p>وقتی کاربر اسکرول عمودی می‌کنه، محتوا به صورت افقی حرکت می‌کنه. این تکنیک برای نمایش گالری‌ها و نمونه‌کارها فوق‌العاده‌ست.</p>
+            </div>
+        </div>
+        <div class="h-card">
+            <span class="num">02</span>
+            <div>
+                <h3>پین کردن</h3>
+                <p>یه بخش رو ثابت نگه می‌داری و انیمیشن رو داخلش اجرا می‌کنی. این روش برای روایت داستان یا نمایش محصولات عالیه.</p>
+            </div>
+        </div>
+        <div class="h-card">
+            <span class="num">03</span>
+            <div>
+                <h3>پارالاکس</h3>
+                <p>لایه‌های مختلف با سرعت‌های متفاوت حرکت می‌کنن. این حس عمق و سه‌بعدی به سایت می‌ده.</p>
+            </div>
+        </div>
+        <div class="h-card">
+            <span class="num">04</span>
+            <div>
+                <h3>ریویل کارت‌ها</h3>
+                <p>کارت‌ها یکی‌یکی با انیمیشن نرم وارد میشن. این تکنیک توجه کاربر رو به هر محتوا جلب می‌کنه.</p>
+            </div>
+        </div>
+        <div class="h-card">
+            <span class="num">05</span>
+            <div>
+                <h3>ترنزیشن نرم</h3>
+                <p>با کتابخانه Lenis، اسکرول موبایل و دسکتاپ فوق‌العاده روان میشه.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════
+     بخش ۴: پارالاکس + ویژگی‌ها
+═══════════════════════════════════ -->
+<section class="parallax-section" id="features">
+    <div class="parallax-inner">
+        <h2 class="parallax-title" id="parallaxTitle">
+            همه چیز رو با GSAP می‌سازیم
+        </h2>
+        <div class="parallax-grid">
+            <div class="p-box">
+                <span class="ic">⚡</span>
+                <h4>سرعت بالا</h4>
+                <p>GSAP روی GPU اجرا میشه و انیمیشن‌ها ۶۰ فریم بر ثانیه هستن</p>
+            </div>
+            <div class="p-box">
+                <span class="ic">🎯</span>
+                <h4>کنترل کامل</h4>
+                <p>هر پیکسل انیمیشن زیر دست خودته، از شروع تا پایان</p>
+            </div>
+            <div class="p-box">
+                <span class="ic">📱</span>
+                <h4>ریسپانسیو</h4>
+                <p>روی موبایل و دسکتاپ یکسان کار می‌کنه بدون افت کیفیت</p>
+            </div>
+            <div class="p-box">
+                <span class="ic">🌀</span>
+                <h4>اسکرول نرم</h4>
+                <p>با Lenis، حس اسکرول مثل بازی‌های AAA نرم میشه</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════
+     بخش ۵: CTA نهایی
+═══════════════════════════════════ -->
+<section class="cta-section" id="contact">
+    <div>
+        <h2 class="cta-title">بزن بریم!</h2>
+        <a href="#" class="cta-btn">شروع کن 🚀</a>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════
+     CDN ها
+═══════════════════════════════════ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/studio-freight/lenis@1.0.42/bundled/lenis.min.js"></script>
+
+<script>
+/* ═══════════════════════════════════
+   ۱. ثبت پلاگین ScrollTrigger
+═══════════════════════════════════ */
+gsap.registerPlugin(ScrollTrigger);
+
+
+/* ═══════════════════════════════════
+   ۲. اسکرول نرم با Lenis
+═══════════════════════════════════ */
+const lenis = new Lenis({
+    duration: 1.2,
+    easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+    smoothWheel: true,
+    smoothTouch: false,
+});
+
+// اتصال Lenis به GSAP
+lenis.on('scroll', ScrollTrigger.update);
+
+gsap.ticker.add((time) => {
+    lenis.raf(time * 1000);
+});
+
+gsap.ticker.lagSmoothing(0);
+
+
+/* ═══════════════════════════════════
+   ۳. کرسر سفارشی
+═══════════════════════════════════ */
+const cursor = document.getElementById('cursor');
+const cursorRing = document.getElementById('cursorRing');
+
+let mouseX = 0, mouseY = 0;
+let ringX = 0, ringY = 0;
+
+document.addEventListener('mousemove', (e) => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+    gsap.to(cursor, {
+        x: mouseX,
+        y: mouseY,
+        duration: .1,
+        ease: 'power2.out',
+    });
+});
+
+// حلقه انیمیشن برای کرسر (با تاخیر نرم)
+function animateRing() {
+    ringX += (mouseX - ringX) * 0.12;
+    ringY += (mouseY - ringY) * 0.12;
+    cursorRing.style.transform = `translate(${ringX - 25}px, ${ringY - 25}px)`;
+    requestAnimationFrame(animateRing);
+}
+animateRing();
+
+// بزرگ شدن کرسر روی لینک‌ها
+document.querySelectorAll('a, button').forEach(el => {
+    el.addEventListener('mouseenter', () => {
+        gsap.to(cursor, { scale: 3, duration: .3 });
+        gsap.to(cursorRing, { scale: 1.5, duration: .3 });
+    });
+    el.addEventListener('mouseleave', () => {
+        gsap.to(cursor, { scale: 1, duration: .3 });
+        gsap.to(cursorRing, { scale: 1, duration: .3 });
+    });
+});
+
+
+/* ═══════════════════════════════════
+   ۴. نوار پیشرفت اسکرول
+═══════════════════════════════════ */
+gsap.to('#progress', {
+    width: '100%',
+    ease: 'none',
+    scrollTrigger: {
+        trigger: 'body',
+        start: 'top top',
+        end: 'bottom bottom',
+        scrub: 0.3,
+    }
+});
+
+
+/* ═══════════════════════════════════
+   ۵. انیمیشن هیرو
+═══════════════════════════════════ */
+const heroTl = gsap.timeline({ delay: 0.3 });
+
+heroTl
+    .to('.hero-tag', { opacity: 1, y: 0, duration: .8, ease: 'power3.out' })
+    .to('.hero-title span', {
+        opacity: 1,
+        y: 0,
+        duration: 1,
+        stagger: 0.15,
+        ease: 'power4.out',
+    }, '-=0.4')
+    .to('.hero-sub', { opacity: 1, duration: .8 }, '-=0.5')
+    .to('.scroll-hint', { opacity: 1, duration: .8 }, '-=0.3');
+
+
+/* ═══════════════════════════════════
+   ۶. بخش Pinned (متن زوم میشه)
+═══════════════════════════════════ */
+gsap.to('#pinTitle', {
+    scale: 3,
+    opacity: 0,
+    ease: 'none',
+    scrollTrigger: {
+        trigger: '.pin-section',
+        start: 'top top',
+        end: 'bottom top',
+        pin: true,
+        scrub: 1,
+    }
+});
+
+
+/* ═══════════════════════════════════
+   ۷. اسکرول افقی
+═══════════════════════════════════ */
+const hTrack = document.getElementById('hTrack');
+const hWrap = document.querySelector('.horizontal-wrap');
+const totalScroll = hTrack.scrollWidth - window.innerWidth;
+
+gsap.to(hTrack, {
+    x: totalScroll + 80,
+    ease: 'none',
+    scrollTrigger: {
+        trigger: hWrap,
+        start: 'top top',
+        end: () => `+=${totalScroll}`,
+        pin: true,
+        scrub: 1,
+        invalidateOnRefresh: true,
+    }
+});
+
+
+/* ═══════════════════════════════════
+   ۸. انیمیشن پارالاکس (کلمات یکی یکی)
+═══════════════════════════════════ */
+const titleText = document.getElementById('parallaxTitle');
+const words = titleText.textContent.trim().split(' ');
+titleText.innerHTML = words.map(w => `<span>${w}&nbsp;</span>`).join('');
+
+gsap.to('#parallaxTitle span', {
+    opacity: 1,
+    stagger: 0.15,
+    ease: 'power2.out',
+    scrollTrigger: {
+        trigger: '#parallaxTitle',
+        start: 'top 80%',
+        end: 'bottom 60%',
+        scrub: 1,
+    }
+});
+
+
+/* ═══════════════════════════════════
+   ۹. کارت‌های پارالاکس
+═══════════════════════════════════ */
+gsap.to('.p-box', {
+    opacity: 1,
+    y: 0,
+    duration: 1,
+    stagger: 0.15,
+    ease: 'power3.out',
+    scrollTrigger: {
+        trigger: '.parallax-grid',
+        start: 'top 80%',
+    }
+});
+
+// پارالاکس سبک روی هر کارت
+document.querySelectorAll('.p-box').forEach((box, i) => {
+    gsap.to(box, {
+        y: -40 - i * 10,
+        ease: 'none',
+        scrollTrigger: {
+            trigger: box,
+            start: 'top bottom',
+            end: 'bottom top',
+            scrub: 1,
+        }
+    });
+});
+
+
+/* ═══════════════════════════════════
+   ۱۰. CTA نهایی
+═══════════════════════════════════ */
+gsap.to('.cta-title', {
+    opacity: 1,
+    scale: 1,
+    duration: 1,
+    ease: 'power4.out',
+    scrollTrigger: {
+        trigger: '.cta-section',
+        start: 'top 60%',
+    }
+});
+
+gsap.to('.cta-btn', {
+    opacity: 1,
+    y: 0,
+    duration: .8,
+    delay: .3,
+    ease: 'power3.out',
+    scrollTrigger: {
+        trigger: '.cta-section',
+        start: 'top 60%',
+    }
+});
+
+
+/* ═══════════════════════════════════
+   ۱۱. اسکرول با کلیک روی نویگیشن
+═══════════════════════════════════ */
+document.querySelectorAll('nav a').forEach(link => {
+    link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const target = link.getAttribute('href');
+        const el = document.querySelector(target);
+        if (el) lenis.scrollTo(el, { duration: 1.5 });
+    });
+});
+
+
+/* ═══════════════════════════════════
+   ۱۲. ری‌فرش روی تغییر سایز
+═══════════════════════════════════ */
+window.addEventListener('resize', () => {
+    ScrollTrigger.refresh();
+});
+
+
+console.log('%c✨ Scroll Animation Demo Loaded', 'color:#00f0ff;font-weight:bold;font-size:14px');
+console.log('%cموفق باشی داداش! 🚀', 'color:#ff2bd6;font-size:12px');
+</script>
+
+</body>
+</html>n"   aria-label="فیروزه‌ای"></button>
+                <button class="swatch"    data-color="pink"   aria-label="صورتی"></button>
+                <button class="swatch"    data-color="lime"   aria-label="سبز"></button>
+                <button class="swatch"    data-color="orange" aria-label="نارنجی"></button>
+                <button class="swatch"    data-color="purple" aria-label="بنفش"></button>
+                <button class="swatch"    data-color="warn"   aria-label="زرد"></button>
+            </div>
+
+            <div class="admin-section-title">تم</div>
+            <div class="tile-grid" id="uTheme">
+                <button class="tile on" data-theme="dark">
+                    <span class="check">✓</span>
+                    <span class="ic">🌙</span>
+                    <span class="nm">تاریک</span>
+                    <span class="ds">حالت شبانه</span>
+                </button>
+                <button class="tile" data-theme="light">
+                    <span class="check">✓</span>
+                    <span class="ic">☀️</span>
+                    <span class="nm">روشن</span>
+                    <span class="ds">حالت روزانه</span>
+                </button>
+                <button class="tile" data-theme="auto">
+                    <span class="check">✓</span>
+                    <span class="ic">🌗</span>
+                    <span class="nm">خودکار</span>
+                    <span class="ds">بر اساس ساعت سیستم</span>
+                </button>
+            </div>
+
+            <div class="admin-section-title">اندازه‌ی فونت</div>
+            <div class="slider-row">
+                <div class="lbl">
+                    <span>مقیاس متن</span>
+                    <span class="val" id="uFontVal">100%</span>
+                </div>
+                <input type="range" id="uFont" min="80" max="130" step="5" value="100">
+            </div>
+
+            <div class="admin-section-title">شفافیت شیشه</div>
+            <div class="slider-row">
+                <div class="lbl">
+                    <span>میزان بلور</span>
+                    <span class="val" id="uBlurVal">30px</span>
+                </div>
+                <input type="range" id="uBlur" min="0" max="40" step="2" value="30">
+            </div>
+
+        </div>
+
+        <!-- ---------- PERFORMANCE ---------- -->
+        <div class="pane" data-pane="perf">
+
+            <div class="admin-section-title">سطح گرافیکی (۶ سطح)</div>
+            <p class="admin-hint" style="margin-top:0;margin-bottom:12px;">
+                اگه سایت لگ می‌زنه، سطح رو کم کن.
+            </p>
+
+            <div class="tile-grid" id="uPerfTiles">
+                <button class="tile" data-tier="ultra-low">
+                    <span class="check">✓</span>
+                    <span class="ic">🪫</span>
+                    <span class="nm">Ultra-Low</span>
+                    <span class="ds">سریع‌ترین · بدون افکت</span>
+                </button>
+                <button class="tile" data-tier="low">
+                    <span class="check">✓</span>
+                    <span class="ic">🔋</span>
+                    <span class="nm">Low</span>
+                    <span class="ds">سبک · بلور خیلی کم</span>
+                </button>
+                <button class="tile" data-tier="mid-low">
+                    <span class="check">✓</span>
+                    <span class="ic">⚡</span>
+                    <span class="nm">Mid-Low</span>
+                    <span class="ds">نیمه‌سبک</span>
+                </button>
+                <button class="tile" data-tier="mid">
+                    <span class="check">✓</span>
+                    <span class="ic">⚖️</span>
+                    <span class="nm">Mid</span>
+                    <span class="ds">تعادل</span>
+                </button>
+                <button class="tile" data-tier="high">
+                    <span class="check">✓</span>
+                    <span class="ic">✨</span>
+                    <span class="nm">High</span>
+                    <span class="ds">کامل</span>
+                </button>
+                <button class="tile" data-tier="ultra">
+                    <span class="check">✓</span>
+                    <span class="ic">🌟</span>
+                    <span class="nm">Ultra</span>
+                    <span class="ds">حداکثر بلوم</span>
+                </button>
+            </div>
+
+            <div class="admin-section-title">سرعت انیمیشن</div>
+            <div class="slider-row">
+                <div class="lbl">
+                    <span>ضریب سرعت</span>
+                    <span class="val" id="uAnimVal">1.0x</span>
+                </div>
+                <input type="range" id="uAnim" min="50" max="200" step="10" value="100">
+            </div>
+            <div class="admin-hint">
+                کمتر = سریع‌تر · بیشتر = آرام‌تر و سینمایی‌تر
+            </div>
+
+            <div class="admin-section-title">افکت‌های اختیاری</div>
+
+            <div class="toggle-row">
+                <div class="txt">
+                    <div class="tt">رقص نور پس‌زمینه</div>
+                    <div class="st">انیمیشن نورهای نئون</div>
+                </div>
+                <div class="switch on" id="uFXBackground" role="switch" tabindex="0" aria-checked="true"></div>
+            </div>
+
+            <div class="toggle-row">
+                <div class="txt">
+                    <div class="tt">افکت کش لاستیکی</div>
+                    <div class="st">کشیدن دکمه‌ها با موس (iOS 26)</div>
+                </div>
+                <div class="switch on" id="uFXStretch" role="switch" tabindex="0" aria-checked="true"></div>
+            </div>
+
+            <div class="toggle-row">
+                <div class="txt">
+                    <div class="tt">بلور پشت کارت‌ها</div>
+                    <div class="st">وقتی روی یه کارت هستی، بقیه بلور بشن</div>
+                </div>
+                <div class="switch on" id="uFXCardBlur" role="switch" tabindex="0" aria-checked="true"></div>
+            </div>
+
+            <div class="toggle-row">
+                <div class="txt">
+                    <div class="tt">ذرات قلب</div>
+                    <div class="st">انفجار ذرات موقع کلیک روی علاقه‌مندی</div>
+                </div>
+                <div class="switch on" id="uFXHeartParticles" role="switch" tabindex="0" aria-checked="true"></div>
+            </div>
+
+            <div class="toggle-row">
+                <div class="txt">
+                    <div class="tt">افکت بلوم (Bloom)</div>
+                    <div class="st">درخشش نئون قوی‌تر روی کارت‌ها و مودال</div>
+                </div>
+                <div class="switch on" id="uFXBloom" role="switch" tabindex="0" aria-checked="true"></div>
+            </div>
+
+        </div>
+
+        <!-- ---------- MISC ---------- -->
+        <div class="pane" data-pane="misc">
+
+            <div class="admin-section-title">حرکت و اسکرول</div>
+
+            <div class="toggle-row">
+                <div class="txt">
+                    <div class="tt">اسکرول نرم</div>
+                    <div class="st">وقتی روی لینک کلیک می‌کنی، آروم بره</div>
+                </div>
+                <div class="switch on" id="uSmooth" role="switch" tabindex="0" aria-checked="true"></div>
+            </div>
+
+            <div class="toggle-row">
+                <div class="txt">
+                    <div class="tt">نمایش نوار پیشرفت</div>
+                    <div class="st">نوار رنگی بالای صفحه موقع اسکرول</div>
+                </div>
+                <div class="switch on" id="uScrollBar" role="switch" tabindex="0" aria-checked="true"></div>
+            </div>
+
+            <div class="admin-section-title">ذخیره‌سازی</div>
+
+            <div class="admin-btn-row" style="margin-top:0;">
+                <button class="admin-btn" id="uResetSettings">
+                    <span>🔄</span>
+                    <span>بازنشانی تنظیمات</span>
+                </button>
+                <button class="admin-btn danger" id="uClearCache">
+                    <span>🧹</span>
+                    <span>پاک کردن حافظه</span>
+                </button>
+            </div>
+
+            <div class="admin-hint">
+                «پاک کردن حافظه» علاقه‌مندی‌ها، تنظیمات و تم رو از بین می‌بره.
+            </div>
+
+            <div class="admin-section-title">درباره</div>
+            <div class="admin-hint">
+                <strong>GOTY Archive</strong> · نسخه v3.0.0<br>
+                ساخته شده توسط <strong>آریا عزیزی</strong><br>
+                &copy; ۲۰۲۵ · تمام حقوق محفوظ است
+            </div>
+
+        </div>
+
+    </div>
+</aside>
+
+<script src="script.js"></script>
+</body>
+</html>
